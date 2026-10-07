@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Achiever HQ — Merchant TNA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1A3049; --navy-soft:#24405E; --terracotta:#C4663F; --terracotta-dim:#A9542F;
+    --grey:#6F7378; --grey-light:#9AA0A6; --border:#E3E5E8; --border-soft:#EDEEF0;
+    --bg:#F6F5F3; --card:#FFFFFF; --hover:#FBFAF8;
+    --ok:#2E7D5B;   --ok-bg:#E9F4EE;   --ok-dot:#35966B;
+    --prog:#9A6B06; --prog-bg:#FBF2DC; --prog-dot:#D9A520;
+    --bad:#A93D28;  --bad-bg:#FBECE8;  --bad-dot:#C8553B;
+    --na:#AFB3B8;   --na-bg:#F2F3F4;
+    --pend-bg:#EDEFF1; --pend-dot:#C3C7CB;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:'Manrope',system-ui,-apple-system,sans-serif;background:var(--bg);
+    color:var(--navy);-webkit-font-smoothing:antialiased;font-size:14px}
+  button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+  .hidden{display:none !important}
+
+  /* ---------------------------------------------------------------- login */
+  #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;
+    padding:24px;background:linear-gradient(170deg,var(--navy) 0%,#132438 100%)}
+  .login-card{width:100%;max-width:392px;background:var(--card);border-radius:16px;
+    padding:34px 28px 28px;box-shadow:0 20px 60px rgba(0,0,0,.28)}
+  .brand{font-family:'Fraunces',serif;font-size:13px;font-weight:600;letter-spacing:3px;
+    text-transform:uppercase;color:var(--terracotta);margin-bottom:22px}
+  .login-card h1{font-family:'Fraunces',serif;font-size:27px;font-weight:500;margin:0 0 6px;line-height:1.2}
+  .login-card h1 em{font-style:italic;color:var(--terracotta)}
+  .login-card p.sub{font-size:13.5px;color:var(--grey);margin:0 0 24px;line-height:1.5}
+
+  .field{margin-bottom:15px}
+  .field label{display:block;font-size:10.5px;font-weight:800;letter-spacing:1.3px;
+    text-transform:uppercase;color:var(--grey);margin-bottom:6px}
+  .field input,.field select,.field textarea{width:100%;appearance:none;-webkit-appearance:none;
+    font-size:16px;font-weight:500;background:#fff;border:1px solid var(--border);
+    border-radius:10px;padding:12px 13px}
+  .field select{background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F7378' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat:no-repeat;background-position:right 11px center;background-size:17px;padding-right:36px}
+  .field textarea{resize:vertical;min-height:76px;line-height:1.5}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--terracotta)}
+  .field input:disabled,.field textarea:disabled{background:#F4F4F5;color:var(--grey-light)}
+  #pin{letter-spacing:9px;text-align:center;font-weight:700}
+  #pin::placeholder{letter-spacing:3px;color:var(--grey-light);font-weight:500}
+  .hint{font-size:11.5px;color:var(--grey-light);margin-top:6px;line-height:1.45}
+
+  .btn{appearance:none;border:1px solid transparent;border-radius:9px;padding:10px 15px;
+    font-weight:700;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+    transition:background .12s,border-color .12s,opacity .12s;white-space:nowrap}
+  .btn-primary{background:var(--terracotta);color:#fff}
+  .btn-primary:hover:not(:disabled){background:var(--terracotta-dim)}
+  .btn-primary:disabled{opacity:.45;cursor:default}
+  .btn-ghost{background:#fff;color:var(--grey);border-color:var(--border)}
+  .btn-ghost:hover{color:var(--navy);border-color:var(--grey-light)}
+  .btn-ok{background:var(--ok);color:#fff}
+  .btn-ok:hover:not(:disabled){background:#276A4D}
+  .btn-full{width:100%;padding:14px}
+
+  .msg{font-size:13px;font-weight:600;border-radius:9px;padding:11px 13px;margin-bottom:14px;line-height:1.45}
+  .msg-err{background:var(--bad-bg);color:var(--bad)}
+  .msg-ok{background:var(--ok-bg);color:var(--ok)}
+
+  /* ------------------------------------------------------------------ app */
+  #app{min-height:100dvh;display:flex;flex-direction:column}
+  .topbar{background:var(--navy);color:#fff;padding:12px 20px;display:flex;align-items:center;
+    gap:14px;position:sticky;top:0;z-index:30}
+  .topbar .mark{font-family:'Fraunces',serif;font-size:15px;font-weight:600;letter-spacing:1.4px;
+    text-transform:uppercase;white-space:nowrap}
+  .topbar .mark span{color:var(--terracotta)}
+  .topbar .tag{font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;
+    color:rgba(255,255,255,.5)}
+  .topbar .who{margin-left:auto;font-size:12px;font-weight:700;background:rgba(255,255,255,.12);
+    padding:6px 12px;border-radius:999px;white-space:nowrap}
+  .topbar .out{background:none;border:none;color:rgba(255,255,255,.72);font-size:12px;
+    font-weight:700;cursor:pointer;padding:6px 2px}
+  .topbar .out:hover{color:#fff}
+
+  .wrap{width:100%;max-width:1560px;margin:0 auto;padding:16px 20px 80px}
+
+  .stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 14px;
+    display:flex;align-items:baseline;gap:8px;cursor:pointer;transition:border-color .12s,background .12s}
+  .stat:hover{border-color:var(--grey-light)}
+  .stat.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .stat.on .l{color:rgba(255,255,255,.75)}
+  .stat .n{font-family:'Fraunces',serif;font-size:20px;font-weight:600;line-height:1}
+  .stat .l{font-size:10.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--grey)}
+  .stat.ok:not(.on) .n{color:var(--ok)}
+  .stat.bad:not(.on) .n{color:var(--bad)}
+
+  .pills{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;margin-bottom:6px;scrollbar-width:thin}
+  .pills::-webkit-scrollbar{height:5px}
+  .pills::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .pill{flex:none;display:inline-flex;align-items:center;gap:7px;cursor:pointer;border-radius:999px;
+    padding:6px 13px 6px 10px;font-size:12.5px;font-weight:700;white-space:nowrap;
+    background:hsl(var(--h) 60% 95%);color:hsl(var(--h) 55% 27%);border:1px solid hsl(var(--h) 42% 87%)}
+  .pill .sw{width:9px;height:9px;border-radius:50%;background:hsl(var(--h) 52% 46%);flex:none}
+  .pill .ct{font-size:11px;font-weight:800;opacity:.65}
+  .pill.on{background:hsl(var(--h) 52% 32%);color:#fff;border-color:hsl(var(--h) 52% 32%)}
+  .pill.on .sw{background:rgba(255,255,255,.85)}
+  .pill.all{background:#fff;color:var(--grey);border-color:var(--border)}
+  .pill.all .sw{display:none}
+  .pill.all.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .toolbar input[type=search],.toolbar select{appearance:none;-webkit-appearance:none;background:#fff;
+    border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:13.5px;font-weight:500}
+  .toolbar input[type=search]{flex:1 1 230px;min-width:0}
+  .toolbar input:focus,.toolbar select:focus{outline:none;border-color:var(--terracotta)}
+  .toolbar .spacer{flex:1 1 auto}
+  .count{font-size:12.5px;font-weight:700;color:var(--grey);white-space:nowrap;padding:0 2px}
+
+  .seg{display:inline-flex;background:#fff;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+  .seg button{border:none;background:none;padding:9px 15px;font-size:13px;font-weight:700;
+    color:var(--grey);cursor:pointer}
+  .seg button.on{background:var(--navy);color:#fff}
+
+  /* ----------------------------------------------------------------- list */
+  .list{background:var(--card);border:1px solid var(--border);border-radius:12px}
+  .head,.row{display:grid;grid-template-columns:var(--cols);align-items:center;column-gap:14px;padding:0 14px}
+  .head{height:38px;background:#FAF9F7;border-bottom:1px solid var(--border);
+    position:sticky;top:var(--topbar,53px);z-index:10;border-radius:11px 11px 0 0}
+  .head.stuck{box-shadow:0 6px 12px -8px rgba(26,48,73,.45);border-radius:0}
+  .head div{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+    color:var(--grey);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row{min-height:60px;border-bottom:1px solid var(--border-soft);cursor:pointer;transition:background .1s}
+  .row:last-child{border-bottom:none;border-radius:0 0 11px 11px}
+  .row:hover{background:var(--hover)}
+  .row:focus-visible{outline:2px solid var(--terracotta);outline-offset:-2px}
+  .row.closed{opacity:.55}
+
+  .po{font-size:14px;font-weight:800}
+  .nm{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cell{font-size:13px;font-weight:500;color:var(--navy-soft);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .cell.dim{color:var(--grey-light);font-style:italic}
+
+  .buyer{display:inline-block;max-width:100%;font-size:12px;font-weight:700;padding:4px 10px;
+    border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    background:hsl(var(--h) 60% 94%);color:hsl(var(--h) 55% 27%);border:1px solid hsl(var(--h) 42% 86%)}
+
+  /* 13 segments, one per milestone. The whole pipeline at a glance without
+     reading a word — which is the point of a tracker this wide. */
+  .rail{display:flex;gap:2px;align-items:center}
+  .rail i{flex:1;height:7px;border-radius:2px;background:var(--pend-dot);min-width:4px}
+  .rail i.ok{background:var(--ok-dot)}
+  .rail i.prog{background:var(--prog-dot)}
+  .rail i.bad{background:var(--bad-dot)}
+  .rail i.na{background:#E4E6E8}
+  .rail i.late{box-shadow:inset 0 0 0 2px var(--bad)}
+  .railwrap{display:flex;align-items:center;gap:9px;min-width:0}
+  .railwrap .pc{font-size:11.5px;font-weight:800;color:var(--grey);flex:none;width:38px;text-align:right}
+
+  .due{font-size:12.5px;font-weight:700;padding:3px 8px;border-radius:6px;
+    background:var(--pend-bg);color:var(--grey);white-space:nowrap}
+  .due.soon{background:var(--prog-bg);color:var(--prog)}
+  .due.late{background:var(--bad-bg);color:var(--bad)}
+  .due.none{background:transparent;color:var(--grey-light);font-style:italic;font-weight:600;padding-left:0}
+
+  .empty{text-align:center;padding:64px 20px;color:var(--grey)}
+  .empty h3{font-family:'Fraunces',serif;font-size:19px;font-weight:500;margin:0 0 8px;color:var(--navy)}
+  .loading{text-align:center;padding:64px 20px;color:var(--grey);font-size:13.5px;font-weight:600}
+
+  @media(max-width:1040px){
+    .wrap{padding:14px 12px 80px}
+    .head{display:none}
+    .row{grid-template-columns:1fr auto !important;
+      grid-template-areas:"p d" "n n" "b r" "t t";row-gap:5px;padding:12px;align-items:center}
+    .po{grid-area:p} .nm{grid-area:n} .c-buyer{grid-area:b}
+    .railwrap{grid-area:r;justify-self:end;width:150px}
+    .c-due{grid-area:d;justify-self:end} .c-task{grid-area:t}
+  }
+
+  /* --------------------------------------------------------------- drawer */
+  .scrim{position:fixed;inset:0;background:rgba(19,36,56,.5);z-index:40;display:none}
+  .scrim.open{display:block}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:100%;max-width:620px;background:var(--bg);
+    z-index:41;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column}
+  .drawer.open{transform:translateX(0)}
+  .drawer header{background:var(--navy);color:#fff;padding:14px 18px;display:flex;align-items:flex-start;gap:12px}
+  .drawer header .t{flex:1;min-width:0}
+  .drawer header .eyebrow{font-size:10px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;
+    color:rgba(255,255,255,.6);margin-bottom:4px}
+  .drawer header h2{font-family:'Fraunces',serif;font-size:19px;font-weight:500;margin:0;
+    line-height:1.25;word-break:break-word}
+  .drawer header .nav{display:flex;gap:4px;margin-left:auto}
+  .drawer header .nav button{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.8);
+    cursor:pointer;border-radius:7px;width:30px;height:30px;font-size:15px;line-height:1;
+    display:flex;align-items:center;justify-content:center}
+  .drawer header .nav button:hover{background:rgba(255,255,255,.2);color:#fff}
+  .drawer header .nav button:disabled{opacity:.3;cursor:default}
+  .drawer .scroll{flex:1;overflow-y:auto;padding:16px 18px 24px;-webkit-overflow-scrolling:touch}
+
+  .section{font-size:10px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;
+    color:var(--grey);margin:0 0 10px;display:flex;align-items:center;gap:9px}
+  .section .r{margin-left:auto;font-weight:700;letter-spacing:0;text-transform:none;font-size:12px;color:var(--grey-light)}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:15px;margin-bottom:15px}
+
+  .bar{height:7px;border-radius:4px;background:var(--border-soft);overflow:hidden;margin:2px 0 12px}
+  .bar i{display:block;height:100%;background:var(--ok);border-radius:4px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  @media(max-width:520px){.grid2{grid-template-columns:1fr}}
+
+  /* One line per milestone beats thirteen cards: same information, a quarter of
+     the space, and it reads top-to-bottom in pipeline order. */
+  .ms{display:grid;grid-template-columns:22px minmax(86px,1.1fr) 112px 1fr 1fr;
+    align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border-soft)}
+  .ms:last-child{border-bottom:none}
+  .ms .n{font-size:11px;font-weight:800;color:var(--grey-light)}
+  .ms .l{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ms select,.ms input{width:100%;appearance:none;-webkit-appearance:none;border:1px solid var(--border);
+    border-radius:7px;padding:7px 8px;font-size:12.5px;font-weight:600;background:#fff;min-width:0}
+  .ms select{padding-right:22px;
+    background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F7378' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat:no-repeat;background-position:right 6px center;background-size:14px}
+  .ms select:focus,.ms input:focus{outline:none;border-color:var(--terracotta)}
+  .ms .na{font-size:11.5px;color:var(--grey-light);font-style:italic;text-align:center}
+  .ms select.s-approved{background-color:var(--ok-bg);color:var(--ok);border-color:#C9E2D5}
+  .ms select.s-progress{background-color:var(--prog-bg);color:var(--prog);border-color:#EEDFB4}
+  .ms select.s-rejected{background-color:var(--bad-bg);color:var(--bad);border-color:#EFCCC3}
+  .ms select.s-na{background-color:var(--na-bg);color:var(--na)}
+  .ms.late .l{color:var(--bad)}
+  .ms.late .l::after{content:" •";color:var(--bad)}
+
+  .mshead{display:grid;grid-template-columns:22px minmax(86px,1.1fr) 112px 1fr 1fr;gap:9px;
+    padding-bottom:7px;border-bottom:1px solid var(--border)}
+  .mshead div{font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--grey-light)}
+  @media(max-width:560px){
+    .mshead{display:none}
+    .ms{grid-template-columns:22px 1fr 1fr;grid-template-areas:"n l l" ". s s" ". d a";row-gap:6px}
+    .ms .n{grid-area:n} .ms .l{grid-area:l}
+    .ms .c-s{grid-area:s} .ms .c-d{grid-area:d} .ms .c-a{grid-area:a}
+  }
+
+  .logbox{background:#FBFAF8;border:1px solid var(--border);border-radius:9px;padding:11px 12px;
+    max-height:240px;overflow-y:auto;font-size:12px;line-height:1.65;color:var(--navy-soft);
+    white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  .drawer footer{padding:12px 18px;background:var(--card);border-top:1px solid var(--border);
+    display:flex;gap:10px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .drawer footer .btn{flex:1;padding:13px}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(140%);
+    background:var(--navy);color:#fff;font-size:13px;font-weight:600;padding:12px 20px;border-radius:999px;
+    z-index:70;transition:transform .22s ease;max-width:calc(100% - 36px);text-align:center}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.bad{background:var(--bad)}
+</style>
+</head>
+<body>
+
+<!-- ============================== LOGIN ============================== -->
+<div id="login">
+  <div class="login-card">
+    <div class="brand">Achiever HQ</div>
+    <h1>Merchant <em>TNA</em></h1>
+    <p class="sub">Sign in with your work email and PIN.</p>
+
+    <div class="msg msg-err hidden" id="login-err"></div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" inputmode="email" autocomplete="username"
+             placeholder="name@achieverapparels.in">
+    </div>
+
+    <div class="field">
+      <label for="pin">PIN</label>
+      <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*"
+             maxlength="6" placeholder="••••" autocomplete="current-password">
+      <div class="hint">Access is managed on the Merchant_Mapping tab of the tracker.</div>
+    </div>
+
+    <button class="btn btn-primary btn-full" id="signin" disabled>Sign in</button>
+  </div>
+</div>
+
+<!-- =============================== APP =============================== -->
+<div id="app" class="hidden">
+  <div class="topbar">
+    <div class="mark">Achiever<span>HQ</span></div>
+    <div class="tag">Merchant TNA</div>
+    <div class="who" id="badge">—</div>
+    <button class="out" id="signout">Sign out</button>
+  </div>
+
+  <div class="wrap">
+    <div class="stats" id="stats"></div>
+    <div class="pills" id="buyers"></div>
+
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search PO, style, buyer, task…  (press /)" autocomplete="off">
+      <div class="seg" id="seg">
+        <button data-oc="" class="on">All</button>
+        <button data-oc="Open">Open</button>
+        <button data-oc="Closed">Closed</button>
+      </div>
+      <select id="f-stage"><option value="">Any milestone</option></select>
+      <div class="spacer"></div>
+      <span class="count" id="count"></span>
+      <button class="btn btn-ghost" id="reset">Clear</button>
+      <button class="btn btn-ghost" id="refresh">Refresh</button>
+    </div>
+
+    <div id="content"><div class="loading">Loading your styles…</div></div>
+  </div>
+</div>
+
+<!-- ============================== DRAWER ============================= -->
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer">
+  <header>
+    <div class="t">
+      <div class="eyebrow" id="d-eyebrow">PO</div>
+      <h2 id="d-title">—</h2>
+    </div>
+    <div class="nav">
+      <button id="d-prev" title="Previous">&#8593;</button>
+      <button id="d-next" title="Next">&#8595;</button>
+      <button id="d-close" title="Close">&times;</button>
+    </div>
+  </header>
+
+  <div class="scroll">
+    <div class="msg hidden" id="d-msg"></div>
+
+    <h3 class="section">Progress <span class="r" id="d-prog">—</span></h3>
+    <div class="panel">
+      <div class="bar"><i id="d-bar" style="width:0%"></i></div>
+      <div class="grid2">
+        <div class="field" style="margin:0">
+          <label for="d-oc">Order</label>
+          <select id="d-oc"><option>Open</option><option>Closed</option></select>
+        </div>
+        <div class="field" style="margin:0">
+          <label for="d-fileho">File H/O Date</label>
+          <input id="d-fileho" type="date">
+        </div>
+      </div>
+    </div>
+
+    <h3 class="section">Current task</h3>
+    <div class="panel">
+      <div class="field">
+        <label for="d-subtask">Task / Subtask</label>
+        <input id="d-subtask" autocomplete="off" placeholder="e.g. PP to be sent">
+      </div>
+      <div class="grid2">
+        <div class="field" style="margin:0">
+          <label for="d-taskdue">Due</label>
+          <input id="d-taskdue" type="date">
+        </div>
+        <div class="field" style="margin:0">
+          <label for="d-taskdone">Date done</label>
+          <input id="d-taskdone" type="date">
+        </div>
+      </div>
+      <button class="btn btn-ok" id="d-markdone" style="margin-top:11px;width:100%">Mark done today</button>
+    </div>
+
+    <h3 class="section">Daily remarks</h3>
+    <div class="panel">
+      <div class="field" style="margin:0">
+        <textarea id="d-remarks" placeholder="Fitting feedback, delays, anything worth a note…"></textarea>
+        <div class="hint">Saved to Daily Remarks and added to the update log below.</div>
+      </div>
+    </div>
+
+    <h3 class="section">13 milestones <span class="r" id="d-mscount">—</span></h3>
+    <div class="panel">
+      <div class="mshead"><div>#</div><div>Milestone</div><div>Status</div><div>Due</div><div>Approved</div></div>
+      <div id="d-milestones"></div>
+    </div>
+
+    <h3 class="section">Update log</h3>
+    <div class="panel">
+      <div class="logbox" id="d-log">No entries yet.</div>
+    </div>
+  </div>
+
+  <footer>
+    <button class="btn btn-ghost" id="d-cancel">Close</button>
+    <button class="btn btn-primary" id="d-save">Save changes</button>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================================================================
+   CONFIGURATION — paste the /exec URL of the "Achiever HQ - TNA API"
+   deployment between the quotes. Nothing else here needs editing.
+
+   No PINs live in this file. They stay in the Merchant_Mapping tab and are
+   checked server-side, so viewing this page's source reveals nothing.
+   =========================================================================== */
+var API_URL = "https://script.google.com/macros/s/AKfycbzpvxvkwiOZ_kMouGd8TE0x183uHFSaLj67yUHIpBSQK6dIrFOBBjZpQxXbKqu_xHAS/exec";
+
+/* --------------------------------------------------------------- transport */
+// text/plain on purpose: Apps Script does not answer CORS preflight requests,
+// and text/plain is sent without one. It also keeps the PIN out of the URL.
+async function api(payload) {
+  var res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+    redirect: "follow"
+  });
+  if (!res.ok) throw new Error("The server returned " + res.status + ".");
+  var text = await res.text();
+  try { return JSON.parse(text); }
+  catch (e) { throw new Error("Unexpected response from the server."); }
+}
+
+/* ------------------------------------------------------------------- state */
+var state = {
+  token: sessionStorage.getItem("tna_token") || "",
+  name: sessionStorage.getItem("tna_name") || "",
+  styles: [], rows: [], current: null,
+  milestones: [], statuses: [],
+  buyer: "", oc: "", quick: ""
+};
+
+var $ = function (id) { return document.getElementById(id); };
+var esc = function (s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+};
+
+function toast(m, bad) {
+  var t = $("toast");
+  t.textContent = m;
+  t.className = "toast show" + (bad ? " bad" : "");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function () { t.className = "toast"; }, 3400);
+}
+function show(el, cls, m) { el.className = "msg " + cls; el.textContent = m; }
+function hide(el) { el.className = "msg hidden"; }
+
+/* ------------------------------------------------------------------- dates */
+function todayIso() {
+  var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function nice(isoStr) {
+  var m = String(isoStr || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return "";
+  return Number(m[3]) + " " + MON[Number(m[2]) - 1];
+}
+function daysFromToday(isoStr) {
+  if (!isoStr) return null;
+  return Math.round((new Date(isoStr + "T00:00:00") - new Date(todayIso() + "T00:00:00")) / 86400000);
+}
+
+/* ------------------------------------------------------------ buyer colour */
+// Derived from the name so a buyer keeps the same colour for everyone, in every
+// session — adding a buyer must not re-colour the rest.
+var hueCache = {};
+function hueOf(name) {
+  var k = String(name || "").trim().toLowerCase();
+  if (!k) return 210;
+  if (hueCache[k] != null) return hueCache[k];
+  var h = 0;
+  for (var i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;
+  hueCache[k] = Math.round((h % 360) * 137.508) % 360;
+  return hueCache[k];
+}
+
+/* ------------------------------------------------------------------- login */
+function refreshSignin() {
+  $("signin").disabled = !($("email").value.trim() && $("pin").value.length >= 4);
+  hide($("login-err"));
+}
+$("email").addEventListener("input", refreshSignin);
+$("pin").addEventListener("input", function () {
+  this.value = this.value.replace(/\D/g, "").slice(0, 6);
+  refreshSignin();
+});
+$("pin").addEventListener("keydown", function (e) {
+  if (e.key === "Enter" && !$("signin").disabled) $("signin").click();
+});
+
+$("signin").addEventListener("click", async function () {
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = "Checking…";
+  hide($("login-err"));
+  try {
+    var r = await api({ action: "login", email: $("email").value.trim(), pin: $("pin").value });
+    if (!r.ok) {
+      show($("login-err"), "msg-err", r.error || "Could not sign you in.");
+      $("pin").value = "";
+      return;
+    }
+    state.token = r.token;
+    state.name = r.name;
+    sessionStorage.setItem("tna_token", r.token);
+    sessionStorage.setItem("tna_name", r.name);
+    enterApp();
+  } catch (err) {
+    show($("login-err"), "msg-err", err.message);
+  } finally {
+    btn.textContent = "Sign in";
+    refreshSignin();
+  }
+});
+
+$("signout").addEventListener("click", function () {
+  sessionStorage.clear();
+  location.reload();
+});
+
+/* --------------------------------------------------------------------- app */
+function enterApp() {
+  $("login").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("badge").textContent = state.name;
+  syncTopbar();
+  load();
+}
+
+// The sticky column header needs the top bar's real height; measuring beats
+// guessing, which is how it ends up sitting over the first row.
+function syncTopbar() {
+  var bar = document.querySelector(".topbar");
+  if (bar) document.documentElement.style.setProperty("--topbar", bar.offsetHeight + "px");
+}
+window.addEventListener("resize", syncTopbar);
+window.addEventListener("scroll", function () {
+  var head = document.querySelector(".head");
+  if (!head) return;
+  var bar = document.querySelector(".topbar");
+  head.classList.toggle("stuck", head.getBoundingClientRect().top <= (bar ? bar.offsetHeight : 53) + 1);
+}, { passive: true });
+
+async function load() {
+  $("content").innerHTML = '<div class="loading">Loading your styles…</div>';
+  try {
+    var r = await api({ action: "list", token: state.token });
+    if (!r.ok) {
+      if (/sign in|expired|no longer/i.test(r.error || "")) return signedOut(r.error);
+      $("content").innerHTML = '<div class="empty"><h3>Could not load</h3><p>' + esc(r.error) + "</p></div>";
+      return;
+    }
+    state.styles = r.styles || [];
+    state.milestones = r.milestones || [];
+    state.statuses = r.statuses || [];
+    if (r.name) { state.name = r.name; $("badge").textContent = r.name; }
+
+    $("f-stage").innerHTML = '<option value="">Any milestone</option>' +
+      state.milestones.map(function (m) {
+        return '<option value="' + esc(m.key) + '">Waiting: ' + esc(m.label) + "</option>";
+      }).join("");
+
+    render();
+  } catch (err) {
+    $("content").innerHTML = '<div class="empty"><h3>Could not load</h3><p>' + esc(err.message) + "</p></div>";
+  }
+}
+
+function signedOut(m) {
+  sessionStorage.clear();
+  $("app").classList.add("hidden");
+  $("login").classList.remove("hidden");
+  show($("login-err"), "msg-err", m || "Please sign in again.");
+}
+
+/* ------------------------------------------------------------------ filter */
+function isOpen(s) { return String(s.openClosed || "Open").toLowerCase().indexOf("close") === -1; }
+
+function visible() {
+  var q = $("q").value.trim().toLowerCase();
+  var stage = $("f-stage").value;
+
+  return state.styles.filter(function (s) {
+    if (state.oc === "Open" && !isOpen(s)) return false;
+    if (state.oc === "Closed" && isOpen(s)) return false;
+    if (state.buyer && s.buyer !== state.buyer) return false;
+
+    if (state.quick === "open" && !isOpen(s)) return false;
+    if (state.quick === "closed" && isOpen(s)) return false;
+    if (state.quick === "overdue" && !s.overdue) return false;
+    if (state.quick === "ho") {
+      var ho = s.milestones.ho;
+      if (!ho || ho.status !== "Approved") return false;
+    }
+
+    // "Waiting: <milestone>" — that milestone is the next thing actually owed.
+    if (stage && s.nextKey !== stage) return false;
+
+    if (q) {
+      var hay = [s.poNo, s.styleName, s.buyer, s.subtask, s.remarks].join(" ").toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+}
+
+["q", "f-stage"].forEach(function (id) {
+  $(id).addEventListener("input", render);
+  $(id).addEventListener("change", render);
+});
+$("refresh").addEventListener("click", load);
+$("reset").addEventListener("click", function () {
+  $("q").value = "";
+  $("f-stage").value = "";
+  state.buyer = ""; state.quick = ""; state.oc = "";
+  Array.prototype.forEach.call($("seg").children, function (b) {
+    b.classList.toggle("on", b.getAttribute("data-oc") === "");
+  });
+  render();
+});
+Array.prototype.forEach.call($("seg").children, function (b) {
+  b.addEventListener("click", function () {
+    state.oc = b.getAttribute("data-oc");
+    Array.prototype.forEach.call($("seg").children, function (x) { x.classList.remove("on"); });
+    b.classList.add("on");
+    render();
+  });
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key !== "/" || $("app").classList.contains("hidden")) return;
+  var t = e.target.tagName;
+  if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT") return;
+  e.preventDefault();
+  $("q").focus();
+});
+
+/* ------------------------------------------------------------------ render */
+function statusClass(st) {
+  if (st === "Approved") return "ok";
+  if (st === "In Progress") return "prog";
+  if (st === "Rejected") return "bad";
+  if (st === "N/A") return "na";
+  return "";
+}
+
+function render() {
+  // nextKey is derived here rather than on the server, so the milestone filter
+  // and the row's "next due" always agree.
+  state.styles.forEach(function (s) {
+    s.nextKey = "";
+    for (var i = 0; i < state.milestones.length; i++) {
+      var m = state.milestones[i], d = s.milestones[m.key];
+      if (!d) continue;
+      if (d.status !== "Approved" && d.status !== "N/A") { s.nextKey = m.key; break; }
+    }
+  });
+
+  var rows = visible();
+  state.rows = rows;
+  renderStats();
+  renderBuyers();
+  syncTopbar();
+
+  $("count").textContent = rows.length === state.styles.length
+    ? rows.length + " styles" : rows.length + " of " + state.styles.length;
+
+  if (!rows.length) {
+    $("content").innerHTML = '<div class="empty"><h3>Nothing to show</h3><p>' +
+      (state.styles.length ? "No styles match these filters." : "No styles assigned to you yet.") + "</p></div>";
+    return;
+  }
+
+  var template = "84px minmax(150px,1.5fr) minmax(110px,.9fr) minmax(140px,1.4fr) minmax(170px,1.5fr) 104px";
+  var head = '<div class="head"><div>PO No</div><div>Style</div><div>Buyer</div>' +
+             '<div>Current task</div><div>Pipeline</div><div>Next due</div></div>';
+
+  var body = rows.map(function (s) {
+    var h = hueOf(s.buyer);
+    var d = daysFromToday(s.nextDue);
+    var dueCls = s.nextDue ? (d < 0 ? "late" : d <= 7 ? "soon" : "") : "none";
+    var dueTxt = s.nextDue ? nice(s.nextDue) : "—";
+
+    var rail = state.milestones.map(function (m) {
+      var x = s.milestones[m.key] || {};
+      return '<i class="' + statusClass(x.status) + (x.late ? " late" : "") +
+             '" title="' + esc(m.label + " — " + (x.status || "")) + '"></i>';
+    }).join("");
+
+    return '<div class="row' + (isOpen(s) ? "" : " closed") + '" tabindex="0" data-po="' + esc(s.poNo) + '">' +
+      '<div class="po">' + esc(s.poNo) + "</div>" +
+      '<div class="nm">' + esc(s.styleName || "—") + "</div>" +
+      '<div class="c-buyer"><span class="buyer" style="--h:' + h + '">' + esc(s.buyer || "—") + "</span></div>" +
+      '<div class="cell c-task' + (s.subtask ? "" : " dim") + '">' + esc(s.subtask || "No task set") + "</div>" +
+      '<div class="railwrap"><div class="rail">' + rail + "</div>" +
+        '<span class="pc">' + s.approved + "/13</span></div>" +
+      '<div class="c-due"><span class="due ' + dueCls + '">' + esc(dueTxt) + "</span></div>" +
+    "</div>";
+  }).join("");
+
+  $("content").innerHTML = '<div class="list" style="--cols:' + template + '">' + head + body + "</div>";
+
+  Array.prototype.forEach.call(document.querySelectorAll(".row"), function (el) {
+    var open = function () { openDrawer(el.getAttribute("data-po")); };
+    el.addEventListener("click", open);
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+    });
+  });
+}
+
+function find(po) {
+  for (var i = 0; i < state.styles.length; i++) {
+    if (String(state.styles[i].poNo) === String(po)) return state.styles[i];
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------- stats */
+function renderStats() {
+  var all = state.styles;
+  var tiles = [
+    { id: "", n: all.length, label: "Total styles" },
+    { id: "open", n: all.filter(isOpen).length, label: "Open" },
+    { id: "closed", n: all.filter(function (s) { return !isOpen(s); }).length, label: "Closed" },
+    { id: "ho", n: all.filter(function (s) {
+        return s.milestones.ho && s.milestones.ho.status === "Approved"; }).length,
+      label: "H/O to prod", cls: "ok" },
+    { id: "overdue", n: all.filter(function (s) { return s.overdue > 0; }).length,
+      label: "Overdue", cls: "bad" }
+  ];
+
+  $("stats").innerHTML = tiles.map(function (t) {
+    return '<div class="stat ' + (t.cls || "") + (state.quick === t.id ? " on" : "") +
+      '" data-q="' + t.id + '"><span class="n">' + t.n + '</span><span class="l">' + t.label + "</span></div>";
+  }).join("");
+
+  Array.prototype.forEach.call(document.querySelectorAll(".stat"), function (el) {
+    el.addEventListener("click", function () {
+      var id = el.getAttribute("data-q");
+      state.quick = (state.quick === id) ? "" : id;
+      render();
+    });
+  });
+}
+
+function renderBuyers() {
+  var counts = {};
+  state.styles.forEach(function (s) {
+    var b = String(s.buyer || "").trim();
+    if (b) counts[b] = (counts[b] || 0) + 1;
+  });
+  var names = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a] || a.localeCompare(b); });
+
+  // One buyer and nothing to choose between — the strip would be decoration.
+  if (names.length < 2) { $("buyers").innerHTML = ""; return; }
+
+  $("buyers").innerHTML =
+    '<div class="pill all' + (state.buyer ? "" : " on") + '" data-b="">All buyers <span class="ct">' +
+      state.styles.length + "</span></div>" +
+    names.map(function (n) {
+      return '<div class="pill' + (state.buyer === n ? " on" : "") + '" style="--h:' + hueOf(n) +
+        '" data-b="' + esc(n) + '"><span class="sw"></span>' + esc(n) +
+        ' <span class="ct">' + counts[n] + "</span></div>";
+    }).join("");
+
+  Array.prototype.forEach.call($("buyers").querySelectorAll(".pill"), function (el) {
+    el.addEventListener("click", function () {
+      var n = el.getAttribute("data-b");
+      state.buyer = (state.buyer === n) ? "" : n;
+      render();
+    });
+  });
+}
+
+/* ------------------------------------------------------------------ drawer */
+function openDrawer(po) {
+  var s = find(po);
+  if (!s) return;
+  state.current = s;
+  hide($("d-msg"));
+
+  $("d-eyebrow").textContent = "PO " + s.poNo + " · " + (s.buyer || "—");
+  $("d-title").textContent = s.styleName || ("PO " + s.poNo);
+
+  var idx = state.rows.indexOf(s);
+  $("d-prev").disabled = idx <= 0;
+  $("d-next").disabled = idx === -1 || idx >= state.rows.length - 1;
+
+  var pct = Math.round((s.approved / 13) * 100);
+  $("d-bar").style.width = pct + "%";
+  $("d-prog").textContent = s.approved + " of 13 approved · " + pct + "%";
+  $("d-mscount").textContent = s.overdue ? s.overdue + " overdue" : "on track";
+
+  $("d-oc").value = isOpen(s) ? "Open" : "Closed";
+  $("d-fileho").value = s.fileHO || "";
+  $("d-subtask").value = s.subtask || "";
+  $("d-taskdue").value = s.taskDue || "";
+  $("d-taskdone").value = s.taskDone || "";
+  $("d-remarks").value = s.remarks || "";
+  $("d-log").textContent = s.log || "No entries yet.";
+
+  $("d-milestones").innerHTML = state.milestones.map(function (m, i) {
+    var x = s.milestones[m.key] || {};
+    var cls = x.status === "Approved" ? "s-approved"
+            : x.status === "In Progress" ? "s-progress"
+            : x.status === "Rejected" ? "s-rejected"
+            : x.status === "N/A" ? "s-na" : "";
+
+    var opts = state.statuses.map(function (st) {
+      return '<option' + (st === x.status ? " selected" : "") + ">" + esc(st) + "</option>";
+    }).join("");
+    if (state.statuses.indexOf(x.status) === -1 && x.status) {
+      opts = '<option selected>' + esc(x.status) + "</option>" + opts;
+    }
+
+    // A milestone with no due or approval column in the sheet gets a dash, not
+    // an input that would have nowhere to save to.
+    var dueCell = x.hasDue
+      ? '<input type="date" data-m="' + m.key + '" data-f="due" value="' + esc(x.due || "") + '">'
+      : '<span class="na">—</span>';
+    var apprCell = x.hasAppr
+      ? '<input type="date" data-m="' + m.key + '" data-f="appr" value="' + esc(x.appr || "") + '">'
+      : '<span class="na">—</span>';
+
+    return '<div class="ms' + (x.late ? " late" : "") + '">' +
+      '<div class="n">' + (i + 1) + "</div>" +
+      '<div class="l" title="' + esc(m.label) + '">' + esc(m.label) + "</div>" +
+      '<div class="c-s"><select class="' + cls + '" data-m="' + m.key + '" data-f="status">' + opts + "</select></div>" +
+      '<div class="c-d">' + dueCell + "</div>" +
+      '<div class="c-a">' + apprCell + "</div>" +
+    "</div>";
+  }).join("");
+
+  // Recolour the select the moment it changes, so the panel reads correctly
+  // before anything is saved.
+  Array.prototype.forEach.call($("d-milestones").querySelectorAll("select"), function (sel) {
+    sel.addEventListener("change", function () {
+      sel.className = this.value === "Approved" ? "s-approved"
+                    : this.value === "In Progress" ? "s-progress"
+                    : this.value === "Rejected" ? "s-rejected"
+                    : this.value === "N/A" ? "s-na" : "";
+    });
+  });
+
+  $("scrim").classList.add("open");
+  $("drawer").classList.add("open");
+}
+
+function step(by) {
+  if (!state.current) return;
+  var next = state.rows[state.rows.indexOf(state.current) + by];
+  if (next) openDrawer(next.poNo);
+}
+$("d-prev").addEventListener("click", function () { step(-1); });
+$("d-next").addEventListener("click", function () { step(1); });
+
+function closeDrawer() {
+  $("scrim").classList.remove("open");
+  $("drawer").classList.remove("open");
+  state.current = null;
+}
+$("d-close").addEventListener("click", closeDrawer);
+$("d-cancel").addEventListener("click", closeDrawer);
+$("scrim").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" && $("drawer").classList.contains("open")) closeDrawer();
+});
+
+$("d-markdone").addEventListener("click", function () {
+  $("d-taskdone").value = todayIso();
+});
+
+/* -------------------------------------------------------------------- save */
+$("d-save").addEventListener("click", async function () {
+  var s = state.current;
+  if (!s) return;
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+  hide($("d-msg"));
+
+  // Everything is sent; the API compares against the sheet and writes only what
+  // genuinely differs, so it decides what counts as a change — not the browser,
+  // which may be looking at a stale copy.
+  var patch = {
+    openClosed: $("d-oc").value,
+    fileHO: $("d-fileho").value,
+    subtask: $("d-subtask").value,
+    taskDue: $("d-taskdue").value,
+    taskDone: $("d-taskdone").value,
+    remarks: $("d-remarks").value,
+    milestones: {}
+  };
+
+  Array.prototype.forEach.call($("d-milestones").querySelectorAll("[data-m]"), function (el) {
+    var k = el.getAttribute("data-m"), f = el.getAttribute("data-f");
+    if (!patch.milestones[k]) patch.milestones[k] = {};
+    patch.milestones[k][f] = el.value;
+  });
+
+  try {
+    var r = await api({ action: "save", token: state.token, poNo: s.poNo, patch: patch });
+    if (!r.ok) throw new Error(r.error || "Could not save.");
+    if (!r.changed) { show($("d-msg"), "msg-ok", "Nothing had changed."); return; }
+    closeDrawer();
+    toast("PO " + s.poNo + " saved — " + r.changed + " change" + (r.changed === 1 ? "" : "s") + " logged.");
+    await load();
+  } catch (err) {
+    show($("d-msg"), "msg-err", err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Save changes";
+  }
+});
+
+/* ------------------------------------------------------------------- start */
+if (API_URL.indexOf("PASTE_YOUR") === 0) {
+  show($("login-err"), "msg-err", "Not connected yet — API_URL still needs the deployment URL.");
+} else if (state.token) {
+  enterApp();
+}
+</script>
+</body>
+</html>
