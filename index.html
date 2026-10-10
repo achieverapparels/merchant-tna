@@ -1152,7 +1152,12 @@ function wireCards() {
       cms.classList.toggle("more-l", strip.scrollLeft > 4);
       cms.classList.toggle("more-r", strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 4);
     };
-    strip.addEventListener("scroll", fades, { passive: true });
+    strip.addEventListener("scroll", function () {
+      fades();
+      // The menu is positioned against the button. Scrolling the strip
+      // sideways moves the button out from under it.
+      closePop();
+    }, { passive: true });
     fades();
 
     // Open the strip on the milestone that needs attention, not at New Enquiry
@@ -1640,10 +1645,19 @@ function openPop(btn, card) {
     return '<button data-v="' + esc(st) + '"><span class="d"></span>' + esc(st) + "</button>";
   }).join("");
 
-  var r = btn.getBoundingClientRect();
-  pop.style.left = Math.min(r.left + window.scrollX, window.innerWidth - 152) + "px";
-  pop.style.top = (r.bottom + window.scrollY + 4) + "px";
+  // Measure after it is displayed, otherwise offsetHeight is 0 and the
+  // flip-up test below never triggers.
   pop.classList.add("open");
+
+  var r = btn.getBoundingClientRect();
+  var h = pop.offsetHeight;
+  // Milestone tiles near the bottom of a long list would otherwise open a menu
+  // that runs off the screen, with the last options unreachable.
+  var below = window.innerHeight - r.bottom;
+  var flipUp = below < h + 12 && r.top > h + 12;
+
+  pop.style.left = Math.max(8, Math.min(r.left + window.scrollX, window.innerWidth - 152)) + "px";
+  pop.style.top = (flipUp ? r.top + window.scrollY - h - 4 : r.bottom + window.scrollY + 4) + "px";
 
   Array.prototype.forEach.call(pop.querySelectorAll("button"), function (b) {
     b.addEventListener("click", function () {
@@ -1657,9 +1671,17 @@ function openPop(btn, card) {
   });
 }
 function closePop() { $("pop").classList.remove("open"); popFor = null; }
+
+// Capture phase, not bubble. Several containers call stopPropagation() so that
+// clicking inside them does not collapse the record — which also meant this
+// listener never fired, and the menu stayed stranded until you picked an
+// option. Capture runs before anything can stop propagation.
 document.addEventListener("click", function (e) {
-  if (popFor && !$("pop").contains(e.target)) closePop();
-});
+  if (!popFor) return;
+  if ($("pop").contains(e.target)) return;                  // choosing an option
+  if (popFor.btn && popFor.btn.contains(e.target)) return;   // the button that opened it
+  closePop();
+}, true);
 document.addEventListener("keydown", function (e) {
   if (e.key !== "Escape") return;
   closePop(); closeLightbox(); closeNew();
