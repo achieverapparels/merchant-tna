@@ -201,9 +201,21 @@
     background-repeat:no-repeat;background-position:right 7px center;background-size:13px}
   .cmeta input:focus,.cmeta select:focus{outline:none;border-color:var(--terracotta)}
   .cmeta.saving{opacity:.55}
-  .cmeta .lg{margin-left:auto;background:#fff;border:1px solid var(--border);border-radius:7px;
+  .cmeta .lg{background:#fff;border:1px solid var(--border);border-radius:7px;
     padding:5px 11px;font-size:11px;font-weight:800;color:var(--grey);cursor:pointer}
   .cmeta .lg:hover{color:var(--navy);border-color:var(--grey-light)}
+  /* The buttons are the only <button> elements here, so the first one pushes
+     the group to the right and any that follow sit beside it. */
+  .cmeta button:first-of-type{margin-left:auto}
+  .cmeta .um{color:var(--prog);border-color:var(--prog-br);background:var(--prog-bg)}
+  .cmeta .um:hover{color:var(--prog);border-color:var(--prog-dot)}
+
+  .um-row{display:flex;gap:12px;align-items:baseline;padding:10px 0;
+    border-bottom:1px solid var(--border-soft)}
+  .um-row:last-child{border-bottom:none}
+  .um-row .n{flex:1;font-size:13px;font-weight:700;min-width:0;word-break:break-word}
+  .um-row .v{flex:none;font-size:12.5px;font-weight:800;color:var(--navy-soft);
+    background:var(--pend-bg);padding:3px 9px;border-radius:6px;white-space:nowrap}
 
   .cms{position:relative;min-width:0;margin:0 -12px}
   .strip{display:flex;gap:8px;overflow-x:auto;padding:12px;scroll-behavior:smooth}
@@ -463,6 +475,16 @@
       <button class="x" id="hist-close" aria-label="Close">&times;</button>
     </div>
     <div class="ov-body" id="hist-body"></div>
+  </div>
+</div>
+
+<div class="ov" id="unmap">
+  <div class="ov-card">
+    <div class="ov-head">
+      <div><h3>ERP dates</h3><div class="sub" id="um-sub">—</div></div>
+      <button class="x" id="um-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="ov-body" id="um-body"></div>
   </div>
 </div>
 
@@ -976,6 +998,11 @@ function cardHtml(s) {
           '<input type="date" data-d="fileHO" value="' + esc(s.fileHO || "") + '"></div>' +
         '<div class="f"><span class="k">Production end</span>' +
           '<input type="date" data-d="prodEnd" value="' + esc(s.prodEnd || "") + '"></div>' +
+        // Only offered when the ERP actually sent something that had nowhere to
+        // go. A dead button on every other record would be noise.
+        (s.unmapped
+          ? '<button class="lg um" data-unmap>ERP dates (' + countUnmapped(s.unmapped) + ")</button>"
+          : "") +
         '<button class="lg" data-log>Update log</button>' +
       "</div>" +
       '<div class="cms"><div class="strip">' + tiles + "</div></div>" +
@@ -1083,6 +1110,12 @@ function wireCards() {
       if (!b) return;
       $("f-buyer").value = ($("f-buyer").value === b) ? "" : b;
       render();
+    });
+
+    var umBtn = card.querySelector("[data-unmap]");
+    if (umBtn) umBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      openUnmapped(po);
     });
 
     var logBtn = card.querySelector("[data-log]");
@@ -1351,6 +1384,43 @@ window.addEventListener("beforeunload", function (e) {
   e.returnValue = "";
 });
 
+/* ------------------------------------------------------------ ERP extras */
+// The importer writes these as "NAME: dd/MM/yyyy | NAME: dd/MM/yyyy" into one
+// cell. They are ERP events with no stage in the 13-step model — fabric, trims,
+// FOB, testing — kept because the dates are real and were otherwise discarded.
+function parseUnmapped(text) {
+  return String(text || "").split("|").map(function (part) {
+    var p = part.trim();
+    if (!p) return null;
+    var i = p.lastIndexOf(":");
+    if (i === -1) return { name: p, when: "" };
+    return { name: p.slice(0, i).trim(), when: p.slice(i + 1).trim() };
+  }).filter(Boolean);
+}
+
+function countUnmapped(text) { return parseUnmapped(text).length; }
+
+function openUnmapped(po) {
+  var s = find(po);
+  if (!s) return;
+  var items = parseUnmapped(s.unmapped);
+
+  $("um-sub").textContent = "PO " + s.poNo + " · " + (s.styleName || "") + " · " +
+    items.length + " date" + (items.length === 1 ? "" : "s") + " with no milestone column";
+
+  $("um-body").innerHTML = items.length
+    ? items.map(function (it) {
+        return '<div class="um-row"><span class="n">' + esc(it.name) + "</span>" +
+          '<span class="v">' + esc(it.when || "—") + "</span></div>";
+      }).join("")
+    : '<div class="um-row"><span class="n" style="color:#9AA0A6;font-style:italic">' +
+      "Nothing recorded.</span></div>";
+
+  $("unmap").classList.add("open");
+}
+$("um-close").addEventListener("click", function () { $("unmap").classList.remove("open"); });
+$("unmap").addEventListener("click", function (e) { if (e.target === this) this.classList.remove("open"); });
+
 /* --------------------------------------------------------- remarks history */
 // Remarks are not stored as a list anywhere — they are lines in System Update.
 // Reading them from there means the history is the real record, including
@@ -1594,6 +1664,7 @@ document.addEventListener("keydown", function (e) {
   if (e.key !== "Escape") return;
   closePop(); closeLightbox(); closeNew();
   $("hist").classList.remove("open");
+  $("unmap").classList.remove("open");
 });
 window.addEventListener("scroll", closePop, { passive: true });
 
