@@ -117,7 +117,21 @@
   .card{background:var(--card);border:1px solid var(--border);border-radius:11px;
     margin-bottom:7px;overflow:hidden;border-left:4px solid hsl(var(--h,210) 50% 58%)}
   .card.open{margin-bottom:14px;box-shadow:0 1px 2px rgba(26,48,73,.05),0 10px 26px rgba(26,48,73,.07)}
-  .card.closedorder{opacity:.6}
+  /* Closed recedes; on hold is flagged amber down the spine rather than dimmed,
+     because a held style still needs chasing — it is paused, not finished. */
+  .card.st-closed{opacity:.55}
+  .card.st-hold{border-left-color:var(--prog-dot)}
+  .card.st-hold .po::after{content:" ⏸";font-size:12px;color:var(--prog)}
+
+  .ostate{display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden}
+  .ostate button{border:none;background:#fff;padding:5px 10px;font-size:11px;font-weight:800;
+    color:var(--grey-light);cursor:pointer;white-space:nowrap}
+  .ostate button + button{border-left:1px solid var(--border)}
+  .ostate button:hover{color:var(--navy)}
+  .ostate button.on.o-open{background:var(--ok);color:#fff}
+  .ostate button.on.o-hold{background:var(--prog-dot);color:#fff}
+  .ostate button.on.o-closed{background:var(--grey);color:#fff}
+  .ostate.saving{opacity:.5;pointer-events:none}
 
   .crow{display:grid;
     grid-template-columns:22px 52px 64px minmax(120px,1.3fr) 150px minmax(190px,1.6fr)
@@ -369,6 +383,28 @@
     background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F7378' stroke-width='2.4'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
     background-repeat:no-repeat;background-position:right 9px center;background-size:14px}
   .nf input:focus,.nf select:focus{outline:none;border-color:var(--terracotta)}
+  .nf-ms{border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:11px}
+  .nf-ms-head,.nf-ms-row{display:grid;grid-template-columns:22px 1fr 116px 116px;
+    gap:8px;align-items:center;padding:6px 10px}
+  .nf-ms-head{background:#FAF9F7;border-bottom:1px solid var(--border)}
+  .nf-ms-head div{font-size:9px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;
+    color:var(--grey-light)}
+  .nf-ms-row{border-bottom:1px solid var(--border-soft)}
+  .nf-ms-row:last-child{border-bottom:none}
+  .nf-ms-row .n{font-size:10px;font-weight:800;color:var(--grey-light)}
+  .nf-ms-row .l{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nf-ms-row input{width:100%;border:1px solid var(--border);border-radius:6px;padding:5px 6px;
+    font-size:11.5px;font-weight:600;background:#fff}
+  .nf-ms-row input:focus{outline:none;border-color:var(--terracotta)}
+  .nf-ms-row .na{font-size:11px;color:var(--grey-light);font-style:italic;text-align:center}
+  @media(max-width:520px){
+    .nf-ms-head{display:none}
+    .nf-ms-row{grid-template-columns:22px 1fr;grid-template-areas:"n l" ". d" ". a";row-gap:5px}
+    .nf-ms-row .n{grid-area:n} .nf-ms-row .l{grid-area:l}
+    .nf-ms-row .c-d{grid-area:d} .nf-ms-row .c-a{grid-area:a}
+  }
+
+  .nf-hint{display:block;font-size:11px;color:var(--grey-light);font-style:italic;padding:10px 0}
   .nf-note{font-size:11.5px;color:var(--grey-light);line-height:1.5;margin:4px 0 14px}
   .nf-note b{color:var(--grey)}
   .nf-go{display:flex;gap:10px}
@@ -431,24 +467,19 @@
         <select id="f-merchant" class="hidden"><option value="">All merchants</option></select>
         <select id="f-buyer"><option value="">All buyers</option></select>
         <select id="f-oc">
-          <option value="">All orders</option>
-          <option value="Open">Open only</option>
-          <option value="Closed">Closed only</option>
+          <option value="">All statuses</option>
+          <option value="open">Active only</option>
+          <option value="hold">On hold only</option>
+          <option value="closed">Closed only</option>
         </select>
         <select id="f-stage"><option value="">Any milestone</option></select>
         <select id="sortby">
-          <option value="urgent">Most urgent</option>
-          <option value="due_asc">Next due — soonest</option>
-          <option value="due_desc">Next due — latest</option>
-          <option value="ho_asc">File H/O — soonest</option>
-          <option value="ho_desc">File H/O — latest</option>
+          <option value="added_asc">Date added — oldest first</option>
+          <option value="added_desc">Date added — newest first</option>
           <option value="buyer_az">Buyer — A to Z</option>
           <option value="buyer_za">Buyer — Z to A</option>
-          <option value="po_asc">PO No — low to high</option>
-          <option value="po_desc">PO No — high to low</option>
-          <option value="name_az">Style name — A to Z</option>
-          <option value="prog_asc">Least progress first</option>
-          <option value="prog_desc">Most progress first</option>
+          <option value="ho_asc">File H/O — soonest</option>
+          <option value="ho_desc">File H/O — latest</option>
         </select>
         <div class="spacer"></div>
         <span class="count" id="count"></span>
@@ -510,19 +541,23 @@
         </div>
         <div class="two">
           <label><span>New Enquiry Date</span><input id="n-enq" type="date"></label>
-          <label><span>Order</span>
-            <select id="n-oc"><option>Open</option><option>Closed</option></select></label>
+          <label><span>Production End</span><input id="n-pe" type="date"></label>
         </div>
         <div class="two">
-          <label><span>File H/O Date</span><input id="n-ho" type="date"></label>
-          <label><span>Production End</span><input id="n-pe" type="date"></label>
+          <label><span>Status</span>
+            <select id="n-oc"><option>Open</option><option>On Hold</option><option>Closed</option></select></label>
+          <label><span>&nbsp;</span><span class="nf-hint">File H/O is milestone 11 below.</span></label>
         </div>
         <div class="two">
           <label><span>Current task</span><input id="n-task" autocomplete="off" placeholder="Optional"></label>
           <label><span>Task due</span><input id="n-taskdue" type="date"></label>
         </div>
-        <p class="nf-note">All 13 milestones start at <b>Pending</b> with no dates, matching what the
-          ERP import produces. Set them on the record afterwards.</p>
+        <div class="nf-ms">
+          <div class="nf-ms-head"><div>#</div><div>Milestone</div><div>Due</div><div>Approved</div></div>
+          <div id="n-milestones"></div>
+        </div>
+        <p class="nf-note">All 13 milestones start at <b>Pending</b>. Dates are optional —
+          leave any blank and set it on the record later.</p>
         <div class="nf-go">
           <button class="btn btn-ghost" id="new-cancel">Cancel</button>
           <button class="btn btn-primary" id="new-save">Create style</button>
@@ -754,36 +789,43 @@ function cmpText(a, b, dir) {
   if (a && !b) return -1;
   return a < b ? -dir : a > b ? dir : 0;
 }
-function poNum(s) {
-  var n = parseInt(String(s.poNo).replace(/\D/g, ""), 10);
-  return isNaN(n) ? 0 : n;
-}
+/**
+ * "Date added" is the row's position in the sheet. Nothing records when a style
+ * was created — New Enquiry Date is empty throughout — but rows are only ever
+ * appended, by the ERP import and by New Style alike, so row order is the order
+ * they arrived in.
+ */
+function addedOrder(s) { return typeof s.row === "number" ? s.row : 0; }
+
 var SORTERS = {
-  // Overdue first, then whatever is due soonest — the view that answers "what
-  // do I deal with this morning", which is why it is the default.
-  urgent: function (a, b) {
-    if ((b.overdue > 0) !== (a.overdue > 0)) return b.overdue - a.overdue;
-    return cmpDate(a.nextDue, b.nextDue, 1) || poNum(a) - poNum(b);
-  },
-  due_asc:  function (a, b) { return cmpDate(a.nextDue, b.nextDue, 1) || poNum(a) - poNum(b); },
-  due_desc: function (a, b) { return cmpDate(a.nextDue, b.nextDue, -1) || poNum(a) - poNum(b); },
-  ho_asc:   function (a, b) { return cmpDate(a.fileHO, b.fileHO, 1) || poNum(a) - poNum(b); },
-  ho_desc:  function (a, b) { return cmpDate(a.fileHO, b.fileHO, -1) || poNum(a) - poNum(b); },
-  // Within a buyer, still urgent-first — otherwise grouping by buyer would
-  // scatter that buyer's late styles through the block at random.
-  buyer_az: function (a, b) { return cmpText(a.buyer, b.buyer, 1) || SORTERS.urgent(a, b); },
-  buyer_za: function (a, b) { return cmpText(a.buyer, b.buyer, -1) || SORTERS.urgent(a, b); },
-  po_asc:   function (a, b) { return poNum(a) - poNum(b); },
-  po_desc:  function (a, b) { return poNum(b) - poNum(a); },
-  name_az:  function (a, b) { return cmpText(a.styleName, b.styleName, 1); },
-  prog_asc: function (a, b) { return a.approved - b.approved || SORTERS.urgent(a, b); },
-  prog_desc:function (a, b) { return b.approved - a.approved || SORTERS.urgent(a, b); }
+  added_asc:  function (a, b) { return addedOrder(a) - addedOrder(b); },
+  added_desc: function (a, b) { return addedOrder(b) - addedOrder(a); },
+  // Within a buyer, oldest first — so a buyer's block reads in the same order
+  // as the list does everywhere else.
+  buyer_az:   function (a, b) { return cmpText(a.buyer, b.buyer, 1) || addedOrder(a) - addedOrder(b); },
+  buyer_za:   function (a, b) { return cmpText(a.buyer, b.buyer, -1) || addedOrder(a) - addedOrder(b); },
+  ho_asc:     function (a, b) { return cmpDate(a.fileHO, b.fileHO, 1) || addedOrder(a) - addedOrder(b); },
+  ho_desc:    function (a, b) { return cmpDate(a.fileHO, b.fileHO, -1) || addedOrder(a) - addedOrder(b); }
 };
 
-/* ------------------------------------------------------------------ filter */
-function isOpenOrder(s) {
-  return String(s.openClosed || "Open").toLowerCase().indexOf("close") === -1;
+/* ------------------------------------------------------------ order state */
+// Three states in one column. "On Hold" has to be tested before "Closed",
+// because a sheet that reads "On Hold - Closed by buyer" should count as held.
+var ORDER_STATES = [
+  { id: "open",   v: "Open",    label: "Active",  cls: "o-open" },
+  { id: "hold",   v: "On Hold", label: "On Hold", cls: "o-hold" },
+  { id: "closed", v: "Closed",  label: "Closed",  cls: "o-closed" }
+];
+
+function orderState(s) {
+  var v = String(s.openClosed || "Open").toLowerCase();
+  if (v.indexOf("hold") !== -1) return "hold";
+  if (v.indexOf("close") !== -1) return "closed";
+  return "open";
 }
+function isOpenOrder(s) { return orderState(s) === "open"; }
+
+/* ------------------------------------------------------------------ filter */
 
 function visible() {
   var q = $("q").value.trim().toLowerCase();
@@ -793,14 +835,14 @@ function visible() {
   var oc = $("f-oc").value;
 
   return state.styles.filter(function (s) {
-    if (oc === "Open" && !isOpenOrder(s)) return false;
-    if (oc === "Closed" && isOpenOrder(s)) return false;
+    if (oc && orderState(s) !== oc) return false;
     if (buyer && s.buyer !== buyer) return false;
     if (merch && s.owner !== merch) return false;
     if (stage && s.nextKey !== stage) return false;
 
-    if (state.quick === "open" && !isOpenOrder(s)) return false;
-    if (state.quick === "closed" && isOpenOrder(s)) return false;
+    if (state.quick === "open" && orderState(s) !== "open") return false;
+    if (state.quick === "hold" && orderState(s) !== "hold") return false;
+    if (state.quick === "closed" && orderState(s) !== "closed") return false;
     if (state.quick === "overdue" && !s.overdue) return false;
     if (state.quick === "ho" && !(s.milestones.ho && s.milestones.ho.status === "Approved")) return false;
 
@@ -810,7 +852,7 @@ function visible() {
       if (hay.indexOf(q) === -1) return false;
     }
     return true;
-  }).sort(SORTERS[$("sortby").value] || SORTERS.urgent);
+  }).sort(SORTERS[$("sortby").value] || SORTERS.added_asc);
 }
 
 ["q", "f-stage", "f-buyer", "f-merchant", "f-oc", "sortby"].forEach(function (id) {
@@ -824,7 +866,7 @@ $("refresh").addEventListener("click", function () {
 });
 $("reset").addEventListener("click", function () {
   ["q", "f-stage", "f-buyer", "f-merchant", "f-oc"].forEach(function (id) { $(id).value = ""; });
-  $("sortby").value = "urgent";
+  $("sortby").value = "added_asc";
   state.quick = "";
   render();
 });
@@ -898,12 +940,27 @@ function markActiveFilters() {
   var any = false;
   ["f-stage", "f-buyer", "f-merchant", "f-oc", "sortby"].forEach(function (id) {
     var el = $(id);
-    var on = id === "sortby" ? el.value !== "urgent" : el.value !== "";
+    var on = id === "sortby" ? el.value !== "added_asc" : el.value !== "";
     el.classList.toggle("act", on);
     if (on && id !== "sortby") any = true;
   });
   if ($("q").value.trim() || state.quick) any = true;
   $("reset").classList.toggle("hidden", !any);
+}
+
+/**
+ * New Enquiry and PO Received each carry one date, not a due-and-approval pair.
+ * Labelling one "Due" and the other "Appr", with the opposite reading n/a,
+ * implied a second date that was simply missing. One row labelled "Date".
+ */
+var ONE_DATE = { enquiry: true, po: true };
+
+function dateRows(m, x, dueCell, apprCell) {
+  if (ONE_DATE[m.key] && (x.hasDue || x.hasAppr)) {
+    return '<div class="mf"><b>Date</b>' + (x.hasAppr ? apprCell : dueCell) + "</div>";
+  }
+  return '<div class="mf"><b>Due</b>' + dueCell + "</div>" +
+         '<div class="mf"><b>Appr</b>' + apprCell + "</div>";
 }
 
 function isExpanded(s) {
@@ -957,7 +1014,7 @@ function cardHtml(s) {
     "</div>";
 
   if (!expanded) {
-    return '<div class="card' + (isOpenOrder(s) ? "" : " closedorder") + '" style="--h:' + h +
+    return '<div class="card st-' + orderState(s) + '" style="--h:' + h +
       '" data-po="' + esc(s.poNo) + '">' + row + "</div>";
   }
 
@@ -974,8 +1031,7 @@ function cardHtml(s) {
         '<span class="ml" title="' + esc(m.label) + '">' + esc(m.label) + "</span>" + ddBadge(x) + "</div>" +
       '<button class="st ' + statusClass(x.status) + '" data-f="status" data-m="' + m.key +
         '" data-v="' + esc(x.status || "Pending") + '">' + esc(x.status || "Pending") + "</button>" +
-      '<div class="mf"><b>Due</b>' + dueCell + "</div>" +
-      '<div class="mf"><b>Appr</b>' + apprCell + "</div>" +
+      dateRows(m, x, dueCell, apprCell) +
     "</div>";
   }).join("");
 
@@ -984,18 +1040,22 @@ function cardHtml(s) {
       (v ? "" : " dim") + '">' + esc(v || "—") + "</span></div>";
   };
 
-  return '<div class="card open' + (isOpenOrder(s) ? "" : " closedorder") + '" style="--h:' + h +
+  return '<div class="card open st-' + orderState(s) + '" style="--h:' + h +
       '" data-po="' + esc(s.poNo) + '">' + row +
     '<div class="cbody">' +
       '<div class="cmeta" data-stop>' +
         fact("Style No", s.styleNo) +
-        '<div class="f"><span class="k">Order</span>' +
-          '<select data-d="openClosed">' +
-            '<option' + (isOpenOrder(s) ? " selected" : "") + ">Open</option>" +
-            '<option' + (isOpenOrder(s) ? "" : " selected") + ">Closed</option>" +
-          "</select></div>" +
-        '<div class="f"><span class="k">File H/O</span>' +
-          '<input type="date" data-d="fileHO" value="' + esc(s.fileHO || "") + '"></div>' +
+        // Three states as buttons rather than a dropdown — with only three,
+        // seeing which one is active beats opening a list to find out.
+        '<div class="f"><span class="k">Status</span>' +
+          '<div class="ostate">' +
+            ORDER_STATES.map(function (o) {
+              return '<button class="' + o.cls + (orderState(s) === o.id ? " on" : "") +
+                '" data-order="' + o.v + '">' + o.label + "</button>";
+            }).join("") +
+          "</div></div>" +
+        // File H/O is no longer here: it is milestone 11's date, and two fields
+        // writing to one cell is how they end up disagreeing.
         '<div class="f"><span class="k">Production end</span>' +
           '<input type="date" data-d="prodEnd" value="' + esc(s.prodEnd || "") + '"></div>' +
         // Only offered when the ERP actually sent something that had nowhere to
@@ -1103,6 +1163,14 @@ function wireCards() {
       el.addEventListener("change", function () { saveDetail(card, el); });
     });
 
+    Array.prototype.forEach.call(card.querySelectorAll("[data-order]"), function (b) {
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (b.classList.contains("on")) return;   // already in that state
+        saveOrderState(card, b);
+      });
+    });
+
     var buyerChip = card.querySelector(".buyer");
     if (buyerChip) buyerChip.addEventListener("click", function (e) {
       e.stopPropagation();
@@ -1188,7 +1256,38 @@ function noteLocally(s, lines) {
           (s.log ? "\n" + s.log : "");
 }
 
-var DETAIL_LABELS = { openClosed: "Open / Closed", fileHO: "File H/O", prodEnd: "Production End" };
+var DETAIL_LABELS = { openClosed: "Status", fileHO: "File H/O", prodEnd: "Production End" };
+
+/** Active / On Hold / Closed. Saves on click, like the dates and dropdowns. */
+async function saveOrderState(card, btn) {
+  var po = card.getAttribute("data-po");
+  var s = find(po);
+  if (!s) return;
+
+  var want = btn.getAttribute("data-order");
+  var group = btn.parentNode;
+  var was = s.openClosed;
+
+  group.classList.add("saving");
+  try {
+    var r = await postPatch(po, { openClosed: want });
+    if (want !== was) noteLocally(s, ['[Status] Updated to "' + want + '"']);
+    s.openClosed = want;
+
+    Array.prototype.forEach.call(group.children, function (b) {
+      b.classList.toggle("on", b === btn);
+    });
+    // The card's tint and the stat tiles both key off this, so repaint them.
+    card.className = card.className.replace(/\bst-\w+\b/, "st-" + orderState(s));
+    renderStats();
+
+    if (r.changed) toast("PO " + po + " — status set to " + want + ".");
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    group.classList.remove("saving");
+  }
+}
 
 async function saveDetail(card, el) {
   var po = card.getAttribute("data-po");
@@ -1489,7 +1588,7 @@ $("hist-close").addEventListener("click", function () { $("hist").classList.remo
 $("hist").addEventListener("click", function (e) { if (e.target === this) this.classList.remove("open"); });
 
 /* ---------------------------------------------------------------- new style */
-var NEW_FIELDS = ["n-po","n-buyer","n-name","n-styleno","n-enq","n-ho","n-pe","n-task","n-taskdue"];
+var NEW_FIELDS = ["n-po","n-buyer","n-name","n-styleno","n-enq","n-pe","n-task","n-taskdue"];
 
 function openNew() {
   NEW_FIELDS.forEach(function (id) { $(id).value = ""; });
@@ -1512,6 +1611,20 @@ function openNew() {
   // If the list is already filtered to one buyer, that is almost certainly the
   // one being added to.
   if ($("f-buyer").value) $("n-buyer").value = $("f-buyer").value;
+
+  // A milestone with no due or approval column in the sheet gets a dash, not an
+  // input that would have nowhere to save to.
+  $("n-milestones").innerHTML = state.milestones.map(function (m, i) {
+    var due = m.due
+      ? '<input type="date" data-m="' + esc(m.key) + '" data-f="due">'
+      : '<span class="na">—</span>';
+    var appr = m.appr
+      ? '<input type="date" data-m="' + esc(m.key) + '" data-f="appr">'
+      : '<span class="na">—</span>';
+    return '<div class="nf-ms-row"><span class="n">' + (i + 1) + "</span>" +
+      '<span class="l" title="' + esc(m.label) + '">' + esc(m.label) + "</span>" +
+      '<span class="c-d">' + due + "</span><span class=\"c-a\">" + appr + "</span></div>";
+  }).join("");
 
   $("newov").classList.add("open");
   setTimeout(function () { $("n-po").focus(); }, 60);
@@ -1538,11 +1651,20 @@ $("new-save").addEventListener("click", async function () {
     styleNo: $("n-styleno").value.trim(),
     enquiry: $("n-enq").value,
     openClosed: $("n-oc").value,
-    fileHO: $("n-ho").value,
     prodEnd: $("n-pe").value,
     subtask: $("n-task").value.trim(),
-    taskDue: $("n-taskdue").value
+    taskDue: $("n-taskdue").value,
+    milestones: {}
   };
+
+  // Only dates that were actually filled in are sent. An empty field must stay
+  // empty in the sheet rather than arriving as today's date.
+  Array.prototype.forEach.call($("n-milestones").querySelectorAll("[data-m]"), function (el) {
+    if (!el.value) return;
+    var k = el.getAttribute("data-m");
+    if (!row.milestones[k]) row.milestones[k] = {};
+    row.milestones[k][el.getAttribute("data-f")] = el.value;
+  });
 
   if (!row.poNo) return newErr("PO No is required — it is the key everything else matches on.");
   if (!row.buyer) return newErr("Buyer / Client is required.");
@@ -1697,8 +1819,12 @@ function renderStats() {
   var all = state.styles;
   var tiles = [
     { id: "", n: all.length, label: "Total styles" },
-    { id: "open", n: all.filter(isOpenOrder).length, label: "Open" },
-    { id: "closed", n: all.filter(function (s) { return !isOpenOrder(s); }).length, label: "Closed" },
+    { id: "open", n: all.filter(function (s) { return orderState(s) === "open"; }).length,
+      label: "Active" },
+    { id: "hold", n: all.filter(function (s) { return orderState(s) === "hold"; }).length,
+      label: "On hold", cls: "warn" },
+    { id: "closed", n: all.filter(function (s) { return orderState(s) === "closed"; }).length,
+      label: "Closed" },
     { id: "ho", n: all.filter(function (s) {
         return s.milestones.ho && s.milestones.ho.status === "Approved"; }).length,
       label: "H/O to prod", cls: "ok" },
