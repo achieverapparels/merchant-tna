@@ -134,10 +134,20 @@
   .ostate.saving{opacity:.5;pointer-events:none}
 
   .crow{display:grid;
-    grid-template-columns:22px 52px 64px minmax(120px,1.3fr) 150px minmax(190px,1.6fr)
-                          minmax(88px,.8fr) 40px 132px 54px;
+    grid-template-columns:22px 52px 64px minmax(118px,1.25fr) 146px minmax(178px,1.5fr)
+                          minmax(84px,.75fr) 40px 128px 70px 54px;
     align-items:center;gap:10px;padding:6px 12px;cursor:pointer}
   .crow:hover{background:var(--hover)}
+
+  /* Last touched. The ring reads as a clock without costing an SVG per row. */
+  .m-upd{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;
+    color:var(--grey);white-space:nowrap}
+  .m-upd::before{content:"";width:7px;height:7px;border:1.5px solid currentColor;
+    border-radius:50%;flex:none}
+  .m-upd.stale{color:var(--prog)}
+  .m-upd.late{color:var(--bad)}
+  .m-upd.none{color:var(--grey-light);font-weight:600}
+  .m-upd.none::before{opacity:.35}
   .card.open .crow{background:#FAFAF8;border-bottom:1px solid var(--border-soft)}
 
   .chev{justify-self:center;color:var(--grey-light);font-size:11px;line-height:1;
@@ -311,22 +321,23 @@
     font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 
   @media(max-width:1240px){
-    .crow{grid-template-columns:22px 52px 62px minmax(110px,1fr) 140px minmax(90px,.8fr) 40px 126px 50px;
-      grid-template-areas:"c t p n n r k d l" "c q q q q q q q q";row-gap:7px}
+    .crow{grid-template-columns:22px 52px 62px minmax(110px,1fr) 128px minmax(84px,.8fr) 40px 118px 66px 48px;
+      grid-template-areas:"c t p n n r k d u l" "c q q q q q q q q q";row-gap:7px}
     .chev{grid-area:c} .thumb{grid-area:t} .po{grid-area:p} .nm{grid-area:n}
     .bwrap{display:none} .qr{grid-area:q} .minirail{grid-area:r}
-    .m-count{grid-area:k} .m-due{grid-area:d} .m-late{grid-area:l}
+    .m-count{grid-area:k} .m-due{grid-area:d} .m-upd{grid-area:u} .m-late{grid-area:l}
   }
   @media(max-width:860px){
     .head{padding:11px 12px 9px;top:43px}
     .wrap{padding:12px 12px 80px}
     .bar select{max-width:none;flex:1 1 140px}
     .crow{grid-template-columns:22px 52px 1fr auto;
-      grid-template-areas:"c t p d" "c t n n" "c t r r" "q q q q";row-gap:6px;gap:9px}
+      grid-template-areas:"c t p d" "c t n n" "c t r u" "q q q q";row-gap:6px;gap:9px}
     .chev{align-self:center} .thumb{align-self:center}
     .minirail{grid-area:r;align-self:center}
     .m-count,.m-late{display:none}
     .m-due{grid-area:d;justify-self:end}
+    .m-upd{grid-area:u;justify-self:end;align-self:center}
     .ctask{flex-wrap:wrap}
     .ctask .k{width:100%}
     .ctask input[type=date]{width:130px}
@@ -1009,6 +1020,7 @@ function cardHtml(s) {
         ? '<span class="mini m-due ' + dueCls + '" title="Earliest outstanding milestone">' +
             esc((s.nextLabel ? s.nextLabel + " · " : "") + nice(s.nextDue)) + "</span>"
         : '<span class="mini m-due" style="opacity:.3">—</span>') +
+      updatedCell(s) +
       (s.overdue ? '<span class="mini m-late bad">' + s.overdue + " late</span>"
                  : '<span class="mini m-late" style="opacity:0">—</span>') +
     "</div>";
@@ -1058,6 +1070,7 @@ function cardHtml(s) {
         // writing to one cell is how they end up disagreeing.
         '<div class="f"><span class="k">Production end</span>' +
           '<input type="date" data-d="prodEnd" value="' + esc(s.prodEnd || "") + '"></div>' +
+        '<div class="f"><span class="k">Last update</span>' + updatedCell(s) + "</div>" +
         // Only offered when the ERP actually sent something that had nowhere to
         // go. A dead button on every other record would be noise.
         (s.unmapped
@@ -1503,6 +1516,38 @@ function parseUnmapped(text) {
 }
 
 function countUnmapped(text) { return parseUnmapped(text).length; }
+
+/* ------------------------------------------------------------ last update */
+// Taken from the newest line of System Update rather than a column of its own.
+// Every change already stamps itself there, including ERP imports, so a
+// separate "last updated" column would be a second source of the same truth —
+// and the one that goes stale when someone edits the sheet directly.
+function lastUpdated(s) {
+  var lines = String(s.log || "").split("\n");
+  for (var i = 0; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    var m = lines[i].match(/^\s*\[([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})/);
+    if (!m) return null;                       // newest line is not dated
+    var mi = MON.indexOf(m[1]);
+    if (mi === -1) return null;
+    return new Date(Number(m[3]), mi, Number(m[2]));
+  }
+  return null;
+}
+
+function updatedCell(s) {
+  var d = lastUpdated(s);
+  if (!d) {
+    return '<span class="m-upd none" title="Nothing recorded against this style yet">—</span>';
+  }
+  var days = Math.round((new Date(todayIso() + "T00:00:00") - d) / 86400000);
+  // Amber past a fortnight: a style nobody has touched in two weeks is the one
+  // worth asking about, which a bare date does not tell you at a glance.
+  var cls = days > 29 ? " late" : days > 13 ? " stale" : "";
+  var ago = days <= 0 ? "today" : days === 1 ? "yesterday" : days + " days ago";
+  return '<span class="m-upd' + cls + '" title="Last updated ' + ago + '">' +
+    Number(("0" + d.getDate()).slice(-2)) + " " + MON[d.getMonth()] + "</span>";
+}
 
 function openUnmapped(po) {
   var s = find(po);
