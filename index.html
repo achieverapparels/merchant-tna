@@ -167,7 +167,18 @@
   .thumb.load{animation:pulse 1.1s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
 
-  .po{font-family:'Fraunces',serif;font-size:17px;font-weight:600;line-height:1}
+  .po{font-family:'Fraunces',serif;font-size:17px;font-weight:600;line-height:1;
+    display:flex;align-items:center;gap:5px}
+  .flag{background:none;border:none;padding:0;cursor:pointer;font-size:13px;line-height:1;
+    color:#C9CDD1;transition:color .12s,transform .12s;font-family:system-ui,sans-serif}
+  .flag:hover{color:var(--bad);transform:scale(1.15)}
+  .flag.on{color:var(--bad)}
+  .flag.busy{opacity:.4;cursor:progress}
+  /* The flag is small; the point is the PO itself turning red, which is legible
+     from across the room in a way a 13px glyph is not. */
+  .card.urgent .po{color:var(--bad)}
+  .card.urgent{border-left-color:var(--bad)}
+  .card.urgent .crow{background:#FFFBFA}
   .nm{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   .bwrap{display:flex;align-items:center;gap:6px;min-width:0}
@@ -854,6 +865,7 @@ function visible() {
     if (state.quick === "open" && orderState(s) !== "open") return false;
     if (state.quick === "hold" && orderState(s) !== "hold") return false;
     if (state.quick === "closed" && orderState(s) !== "closed") return false;
+    if (state.quick === "urgent" && !s.urgent) return false;
     if (state.quick === "overdue" && !s.overdue) return false;
     if (state.quick === "ho" && !(s.milestones.ho && s.milestones.ho.status === "Approved")) return false;
 
@@ -996,7 +1008,12 @@ function cardHtml(s) {
       '<div class="thumb' + (s.hasImage ? " has load" : "") + '" data-img="' + esc(s.poNo) +
         '" title="' + (s.hasImage ? "Final image — click to enlarge" : "No image yet") +
         '"><span class="ph"></span></div>' +
-      '<div class="po">' + esc(s.poNo) + "</div>" +
+      // The flag sits inside the PO cell rather than claiming a column of its
+      // own — it is beside the thing whose colour it changes, and the row
+      // already carries eleven columns.
+      '<div class="po">' + esc(s.poNo) +
+        '<button class="flag' + (s.urgent ? " on" : "") + '" data-urgent title="' +
+        (s.urgent ? "Urgent — click to clear" : "Mark urgent") + '">&#9873;</button></div>' +
       '<div class="nm" title="' + esc(s.styleName || "") + '">' +
         esc(s.styleName || "Unnamed style") + "</div>" +
       '<div class="bwrap">' +
@@ -1026,7 +1043,7 @@ function cardHtml(s) {
     "</div>";
 
   if (!expanded) {
-    return '<div class="card st-' + orderState(s) + '" style="--h:' + h +
+    return '<div class="card st-' + orderState(s) + (s.urgent ? " urgent" : "") + '" style="--h:' + h +
       '" data-po="' + esc(s.poNo) + '">' + row + "</div>";
   }
 
@@ -1052,7 +1069,7 @@ function cardHtml(s) {
       (v ? "" : " dim") + '">' + esc(v || "—") + "</span></div>";
   };
 
-  return '<div class="card open st-' + orderState(s) + '" style="--h:' + h +
+  return '<div class="card open st-' + orderState(s) + (s.urgent ? " urgent" : "") + '" style="--h:' + h +
       '" data-po="' + esc(s.poNo) + '">' + row +
     '<div class="cbody">' +
       '<div class="cmeta" data-stop>' +
@@ -1193,6 +1210,12 @@ function wireCards() {
       render();
     });
 
+    var flagBtn = card.querySelector("[data-urgent]");
+    if (flagBtn) flagBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleUrgent(card, flagBtn);
+    });
+
     var umBtn = card.querySelector("[data-unmap]");
     if (umBtn) umBtn.addEventListener("click", function (e) {
       e.stopPropagation();
@@ -1270,6 +1293,40 @@ function noteLocally(s, lines) {
 }
 
 var DETAIL_LABELS = { openClosed: "Status", fileHO: "File H/O", prodEnd: "Production End" };
+
+/**
+ * Urgent flag. Saves on click and the whole record recolours.
+ *
+ * Optimistic: the flag flips at once and reverts if the write fails. Waiting a
+ * second and a half for Apps Script before anything moves makes a one-click
+ * control feel broken even when it is working.
+ */
+async function toggleUrgent(card, btn) {
+  if (btn.classList.contains("busy")) return;
+  var po = card.getAttribute("data-po");
+  var s = find(po);
+  if (!s) return;
+
+  var want = !s.urgent;
+  btn.classList.add("busy");
+  btn.classList.toggle("on", want);
+  card.classList.toggle("urgent", want);
+
+  try {
+    var r = await postPatch(po, { urgent: want });
+    if (want !== s.urgent) noteLocally(s, [want ? "[Urgent] Flagged as urgent" : "[Urgent] Urgent flag cleared"]);
+    s.urgent = want;
+    btn.title = want ? "Urgent — click to clear" : "Mark urgent";
+    renderStats();
+    if (r.changed) toast("PO " + po + (want ? " flagged urgent." : " — urgent flag cleared."));
+  } catch (err) {
+    btn.classList.toggle("on", s.urgent);
+    card.classList.toggle("urgent", s.urgent);
+    toast(err.message, true);
+  } finally {
+    btn.classList.remove("busy");
+  }
+}
 
 /** Active / On Hold / Closed. Saves on click, like the dates and dropdowns. */
 async function saveOrderState(card, btn) {
@@ -1873,6 +1930,8 @@ function renderStats() {
     { id: "ho", n: all.filter(function (s) {
         return s.milestones.ho && s.milestones.ho.status === "Approved"; }).length,
       label: "H/O to prod", cls: "ok" },
+    { id: "urgent", n: all.filter(function (s) { return s.urgent; }).length,
+      label: "Urgent", cls: "bad" },
     { id: "overdue", n: all.filter(function (s) { return s.overdue > 0; }).length,
       label: "Overdue", cls: "bad" }
   ];
